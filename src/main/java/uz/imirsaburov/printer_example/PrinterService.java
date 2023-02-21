@@ -19,7 +19,6 @@ import java.util.List;
 @Service
 public class PrinterService {
 
-    @GetMapping("/printers")
     public List<PrinterDTO> getPrinterList() {
         PrintService[] printServices = PrintServiceLookup.lookupPrintServices(null, null);
         return Arrays.stream(printServices).map(this::toDTO).toList();
@@ -38,7 +37,6 @@ public class PrinterService {
     }
 
 
-    @PostMapping("print")
     public void print(@RequestBody PrintRequest printRequest) throws PrintException, IOException {
 
         PrintService byName = getByName(printRequest.printerName());
