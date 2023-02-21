@@ -56,7 +56,7 @@
 <script>
 
 
-    const host = "http://127.0.0.1:8080";
+    const host = "http://127.0.0.1:7777";
     const printUrl = host + "/print";
     const printersUrl = host + "/printers";
 
@@ -72,7 +72,6 @@
         ).then(function (response) {
             document.getElementById("sum-input").value = null;
         })
-        getPrinters();
     }
 
     function getPrinters() {
