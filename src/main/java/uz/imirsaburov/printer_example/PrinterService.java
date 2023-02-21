@@ -51,7 +51,7 @@ public class PrinterService {
 
         SimpleDoc simpleDoc = new SimpleDoc(pngFromHtml, flavor, null);
 
-        printJob.print(simpleDoc, null);
+//        printJob.print(simpleDoc, null);
     }
 
     private String getHtmlAsString() throws IOException {

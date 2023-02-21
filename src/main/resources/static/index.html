@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="bootstrap.min.css">
+
+    <title>Printer</title>
+    <style>
+        body {
+            background-color: #595959;
+            font-size: 32px;
+        }
+    </style>
+</head>
+<body>
+<div class="container text-center text-light">
+        <div class="justify-content-between">
+            <div class="row">
+                <div class="col-8 offset-2">
+                    <form action="">
+
+                        <div class="row mt-4">
+                            <div class="col input-group">
+
+                                <label class="form-label">Printer</label>
+                                <select class="w-100 h-75" id="printers-select">
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mt-5">
+                            <div class="col input-group">
+                                <label class="form-label">Summa</label>
+                                <input class="w-100 h-75" type="number" id="sum-input">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col">
+                                <button class="mt-5 btn w-100 btn-dark" type="button" onclick="getForm()">Print</button>
+                            </div>
+
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+    </div>
+</div>
+
+
+<script src="axios.js"></script>
+<script>
+
+
+    const host = "http://127.0.0.1:8080";
+    const printUrl = host + "/print";
+    const printersUrl = host + "/printers";
+
+    function getForm() {
+        let printerName = document.getElementById("printers-select").value;
+        let summ = name + " " + document.getElementById("sum-input").value;
+
+        axios.post(printUrl,
+            {
+                printerName: printerName,
+                sum: summ,
+            }
+        ).then(function (response) {
+            document.getElementById("sum-input").value = null;
+        })
+        getPrinters();
+    }
+
+    function getPrinters() {
+        axios.get(printersUrl)
+            .then(e => {
+                let options = "";
+                for (let item of e.data) {
+                    item.value = item.name;
+                    options += getOptionBody(item);
+                }
+                document.getElementById("printers-select").innerHTML = options
+            })
+    }
+
+    function getOptionBody(item) {
+        return "<option value ='$argValue'>$argName</option>"
+            .replace("$argValue", item.value)
+            .replace("$argName", item.name)
+    }
+
+    getPrinters()
+</script>
+</body>
+</html>
