@@ -1,27 +1,46 @@
 package uz.imirsaburov.printer_example;
 
+import com.itextpdf.html2pdf.HtmlConverter;
 import gui.ava.html.image.generator.HtmlImageGenerator;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.printing.PDFPageable;
+import org.apache.pdfbox.printing.PDFPrintable;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.imageio.ImageIO;
-import javax.print.*;
+import javax.print.PrintService;
+import javax.print.PrintServiceLookup;
 import javax.print.event.PrintJobEvent;
 import javax.print.event.PrintJobListener;
 import java.awt.image.BufferedImage;
+import java.awt.print.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
+import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.logging.Logger;
 
 @Service
 public class PrinterService {
 
+
+    private final static DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private final static DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+    private final static NumberFormat nf = NumberFormat.getInstance(new Locale("sk", "SK"));
     static Logger logger = Logger.getLogger(PrinterService.class.getName());
+
+    private static final String test = "            \n" +
+            "ЧП “ХАЛАЛ САВДО”\n" +
+            " Адрес: г.Бухара, ул. Ислома " +
+            "Каримова, дом 59";
+
 
     public List<PrinterDTO> getPrinterList() {
         PrintService[] printServices = PrintServiceLookup.lookupPrintServices(null, null);
@@ -44,21 +63,56 @@ public class PrinterService {
     public void print(@RequestBody PrintRequest printRequest) {
 
         try {
-            PrintService byName = getByName(printRequest.printerName());
 
-            DocPrintJob printJob = byName.createPrintJob();
+            LocalDateTime now = LocalDateTime.now();
 
-            DocFlavor flavor = DocFlavor.BYTE_ARRAY.PNG;
 
-            String htmlAsString = getHtmlAsString("/print.html");
+            ByteArrayOutputStream pdfOutput = new ByteArrayOutputStream();
 
-            byte[] pngFromHtml = convertFromHtmlToPng(htmlAsString);
+            String htmlAsString = getHtmlAsString("/print.html")
+                    .replace("$argCheckNumber", RandomStringUtils.random(6,"0123456789"))
+                    .replace("$argDate", dateFormatter.format(now))
+                    .replace("$argTime", timeFormatter.format(now))
+                    .replace("$argPrice", nf.format(printRequest.sum()));
 
-            SimpleDoc simpleDoc = new SimpleDoc(pngFromHtml, flavor, null);
+            HtmlConverter.convertToPdf(htmlAsString, pdfOutput);
 
-            printJob.addPrintJobListener(new MyPrintJobListener());
+            PDDocument document = PDDocument.load(pdfOutput.toByteArray());
 
-            printJob.print(simpleDoc, null);
+            PrintService myPrintService = getByName(printRequest.printerName());
+
+//            PDFPageable pdfPageable = new PDFPageable(document);
+
+//            Paper paper = new Paper();
+//            paper.setImageableArea(0, 0, 0, 0);
+//
+//            PageFormat pageFormat = new PageFormat();
+//            pageFormat.setPaper(paper);
+//
+//            PrinterJob job = PrinterJob.getPrinterJob();
+//            PDFPrintable printable = new PDFPrintable(document);
+//            job.setPrintable(printable, pageFormat);
+//            job.setPrintService(myPrintService);
+//            job.print();
+
+            PrinterJob job = PrinterJob.getPrinterJob();
+            job.setPrintService(myPrintService);
+            job.setPageable(new PDFPageable(document));
+            // define custom paper
+            Paper paper = new Paper();
+            // 1/72 inch
+            paper.setSize(306, 396);
+            // no margins
+            paper.setImageableArea(-25, 0, paper.getWidth(), paper.getHeight());
+            // custom page format
+            PageFormat pageFormat = new PageFormat();
+            pageFormat.setPaper(paper);
+            // override the page format
+            Book book = new Book();
+            // append all pages
+            book.append(new PDFPrintable(document), pageFormat, document.getNumberOfPages());
+            job.setPageable(book);
+            job.print();
 
         } catch (Throwable throwable) {
             throwable.printStackTrace();
@@ -72,6 +126,10 @@ public class PrinterService {
             text = scanner.useDelimiter("\\A").next();
         }
         return text;
+    }
+
+    private InputStream getHtmlInputStream(String resourcePath) throws IOException {
+        return new ClassPathResource(resourcePath).getInputStream();
     }
 
     private byte[] convertFromHtmlToPng(String html) throws IOException {
